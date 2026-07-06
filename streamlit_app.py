@@ -1,67 +1,84 @@
+import random
+
 import streamlit as st
 
-st.set_page_config(page_title="Streamlit 요소 예시", page_icon="✨", layout="wide")
+st.set_page_config(page_title="영어 단어 게임", page_icon="📚", layout="centered")
 
-st.title("🌟 Streamlit 요소 예시")
-st.markdown("Streamlit 앱에서 자주 쓰는 요소들을 한 화면에서 확인해 보세요.")
+st.title("📚 영어 단어 뜻 맞추기")
+st.markdown("영어 단어가 화면 상단에 나타나면, 한글 뜻을 입력해 보세요.")
 
-with st.sidebar:
-    st.header("사이드바")
-    st.checkbox("사이드바 체크박스", value=True)
-    st.slider("사이드바 슬라이더", 0, 100, 50)
+WORDS = [
+    ("apple", "사과"),
+    ("book", "책"),
+    ("river", "강"),
+    ("sun", "태양"),
+    ("computer", "컴퓨터"),
+    ("friend", "친구"),
+    ("teacher", "선생님"),
+    ("house", "집"),
+    ("music", "음악"),
+    ("travel", "여행"),
+]
 
-st.subheader("1. 기본 입력 요소")
-col1, col2 = st.columns(2)
+if "score" not in st.session_state:
+    st.session_state.score = 0
+if "total" not in st.session_state:
+    st.session_state.total = 0
+if "current_word" not in st.session_state:
+    st.session_state.current_word = random.choice(WORDS)
+if "show_result" not in st.session_state:
+    st.session_state.show_result = False
+if "last_result" not in st.session_state:
+    st.session_state.last_result = ""
 
+
+def next_question():
+    st.session_state.current_word = random.choice(WORDS)
+    st.session_state.show_result = False
+    st.session_state.last_result = ""
+    st.session_state.user_answer = ""
+
+
+def check_answer():
+    st.session_state.total += 1
+    user_answer = st.session_state.user_answer.strip()
+    correct_answer = st.session_state.current_word[1]
+    if user_answer == correct_answer:
+        st.session_state.score += 1
+        st.session_state.last_result = "정답입니다! 🎉"
+        st.session_state.show_result = True
+    else:
+        st.session_state.last_result = f"아쉽습니다. 정답은 '{correct_answer}'입니다."
+        st.session_state.show_result = True
+
+
+col1, col2 = st.columns([2, 1])
 with col1:
-    name = st.text_input("이름", placeholder="홍길동")
-    bio = st.text_area("한 줄 소개", "Streamlit으로 멋진 앱을 만들고 있어요.")
-    age = st.number_input("나이", min_value=0, max_value=120, value=25)
-
+    st.metric("점수", f"{st.session_state.score}/{st.session_state.total}")
 with col2:
-    mood = st.radio("오늘 기분", ["좋음", "보통", "나쁨"], horizontal=True)
-    favorite = st.selectbox("좋아하는 언어", ["Python", "JavaScript", "Go", "Rust"])
-    tags = st.multiselect("관심 기술", ["Streamlit", "FastAPI", "Docker", "PyTorch"])
+    if st.button("새 게임", use_container_width=True):
+        st.session_state.score = 0
+        st.session_state.total = 0
+        next_question()
 
-st.button("환영 메시지 보기", type="primary")
-if st.button("환영 메시지 보기"):
-    st.success(f"{name or '방문자'}님, {favorite}를 좋아하시네요!")
-
-st.divider()
-st.subheader("2. 상태 표시와 메시지")
-col3, col4, col5 = st.columns(3)
-with col3:
-    st.info("정보 메시지입니다.")
-with col4:
-    st.warning("주의 메시지입니다.")
-with col5:
-    st.error("에러 메시지입니다.")
-
-st.divider()
-st.subheader("3. 데이터와 차트")
-chart_data = [3, 2, 4, 3, 5, 4]
-st.line_chart(chart_data)
-
-st.dataframe(
-    {
-        "이름": [name or "익명", "민수", "지연"],
-        "나이": [age, 30, 28],
-        "기분": [mood, "좋음", "보통"],
-    }
+word, meaning = st.session_state.current_word
+st.markdown(
+    f"<div style='text-align:center; font-size:48px; font-weight:bold; margin: 20px 0;'>{word}</div>",
+    unsafe_allow_html=True,
 )
 
-st.metric("현재 선택한 항목", favorite, delta="좋아요")
+st.text_input("한글 뜻을 입력하세요", key="user_answer", placeholder="예: 사과")
 
-st.divider()
-st.subheader("4. 레이아웃과 확장")
-with st.expander("추가 정보 보기"):
-    st.write("이 영역은 접었다가 펼쳐서 볼 수 있는 공간입니다.")
-    st.code("st.button('클릭')")
+col3, col4 = st.columns(2)
+with col3:
+    st.button("정답 확인", on_click=check_answer, use_container_width=True)
+with col4:
+    st.button("다음 문제", on_click=next_question, use_container_width=True)
 
-with st.container():
-    st.caption("아래는 탭으로 구분한 예시입니다.")
-    tab1, tab2 = st.tabs(["텍스트", "JSON"])
-    with tab1:
-        st.write("텍스트 요소를 보여주는 탭입니다.")
-    with tab2:
-        st.json({"name": name or "익명", "favorite": favorite, "tags": tags})
+if st.session_state.show_result:
+    if st.session_state.last_result.startswith("정답"):
+        st.success(st.session_state.last_result)
+    else:
+        st.error(st.session_state.last_result)
+
+st.caption("Tip: 뜻을 입력한 뒤 정답 확인을 누르면 결과가 나옵니다.")
